@@ -1,0 +1,9 @@
+D:\SafeSign\src\main\java\com\clauseguard\api\dto\AnalysisRequest.java
+D:\SafeSign\src\main\java\com\clauseguard\api\ClauseGuardApplication.java
+D:\SafeSign\src\main\java\com\clauseguard\api\repository\AnalysisRepository.java
+D:\SafeSign\src\main\java\com\clauseguard\api\service\AnalysisService.java
+D:\SafeSign\src\main\java\com\clauseguard\api\dto\AnalysisResponse.java
+D:\SafeSign\src\main\java\com\clauseguard\api\config\WebConfig.java
+D:\SafeSign\src\main\java\com\clauseguard\api\controller\ContractController.java
+D:\SafeSign\src\main\java\com\clauseguard\api\model\AnalysisRecord.java
+D:\SafeSign\src\main\java\com\clauseguard\api\service\AIService.java
