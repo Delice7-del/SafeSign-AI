@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,10 +18,19 @@ export default function Header({
   showAvatar = false,
 }: HeaderProps = {}) {
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 15);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 bg-[#070814]/70 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-6 md:px-8 h-20 flex items-center justify-between">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-350 ${scrolled ? "glass-panel border-b border-white/5 bg-[#070814]/85 backdrop-blur-md shadow-lg shadow-indigo-950/30" : "bg-transparent border-transparent"}`}>
+      <div className={`mx-auto max-w-7xl px-6 md:px-8 flex items-center justify-between transition-all duration-350 ${scrolled ? "h-16" : "h-20"}`}>
         <Link href="/" className="flex items-center group">
           {/* Double angled logo shape */}
           <div className="flex items-center space-x-0.5">
@@ -39,7 +48,7 @@ export default function Header({
             { name: "Home", href: "/" },
             { name: "Analyze", href: "/analyze" },
             { name: "History", href: "/history" },
-            { name: "Vault", href: "#" },
+            { name: "Vault", href: "/vault" },
           ].map((item) => {
             const isActive =
               pathname === item.href ||

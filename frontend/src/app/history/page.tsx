@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
+import { FiHome, FiBriefcase, FiUser, FiFileText, FiAward } from "react-icons/fi";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface AnalysisRecord {
@@ -194,11 +195,19 @@ function ContractCard({
     setTimeout(() => onDelete(record.id), 350);
   }
 
-  const roleIcon: Record<string, string> = {
-    Tenant: "🏠",
-    Freelancer: "💼",
-    Employee: "👔",
-    "Business Owner": "🏢",
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case "Tenant":
+        return <FiHome className="h-3.5 w-3.5 text-indigo-400" />;
+      case "Freelancer":
+        return <FiBriefcase className="h-3.5 w-3.5 text-indigo-400" />;
+      case "Employee":
+        return <FiUser className="h-3.5 w-3.5 text-indigo-400" />;
+      case "Business Owner":
+        return <FiAward className="h-3.5 w-3.5 text-indigo-400" />;
+      default:
+        return <FiFileText className="h-3.5 w-3.5 text-indigo-400" />;
+    }
   };
 
   return (
@@ -223,7 +232,7 @@ function ContractCard({
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-4 mb-3">
             <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
-              <span>{roleIcon[record.role] ?? "📄"}</span>
+              {getRoleIcon(record.role)}
               <span className="font-medium text-slate-300">{record.role}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">

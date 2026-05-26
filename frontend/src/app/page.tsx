@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import './hero.css';
 
 const WarningIcon = ({ className = "h-5 w-5 text-rose-500" }) => (
   <svg
@@ -156,85 +157,105 @@ export default function LexisLandingPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#070814] text-[#f8fafc] overflow-hidden flex flex-col">
-      {/* Dynamic Background Glow Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0,transparent_60%)] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.06)_0,transparent_60%)] pointer-events-none" />
+    <div className="relative min-h-screen bg-[#070814] text-[#f8fafc] flex flex-col">
+      {/* Fixed Background Glow Elements — fixed so sticky header still works */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0,transparent_60%)]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.06)_0,transparent_60%)]" />
+      </div>
 
       {/* Shared Header Navigation */}
       <Header />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative mx-auto max-w-7xl px-6 md:px-8 pt-16 md:pt-24 pb-20 flex flex-col items-center">
-        {/* Upper Pill Badge */}
-        <div className="inline-flex items-center space-x-2 rounded-full border border-indigo-500/10 bg-indigo-950/20 px-4.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-indigo-300 neon-glow-blue mb-8">
-          <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
-          <span>AI-Powered Legal Intelligence</span>
+      <section className="relative w-full overflow-hidden border-b border-slate-900/40">
+        {/* Full-width Hero background image with animation and opacity/blur overlays */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image
+            src="/contract_analysis_hero.png"
+            alt="AI Contract Analysis Background"
+            fill
+            className="object-cover opacity-45 blur-[1px] hero-zoom-animation"
+            priority
+          />
+          {/* Subtle dark gradient overlay to blend perfectly and maintain text readability */}
+          <div className="absolute inset-0 bg-[#070814]/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#070814]/90 via-transparent to-[#070814]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#070814] via-transparent to-[#070814]" />
         </div>
 
-        {/* H1 Main Title */}
-        <h1 className="max-w-5xl text-center text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1] md:leading-[1.08] mb-6">
-          Understand Any Contract <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#dcdfff] to-indigo-300">
-            Before You Sign
-          </span>
-        </h1>
+        {/* Content container (relative z-10 renders it on top of the background) */}
+        <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8 pt-16 md:pt-24 pb-20 flex flex-col items-center">
+          {/* Upper Pill Badge */}
+          <div className="inline-flex items-center space-x-2 rounded-full border border-indigo-500/10 bg-indigo-950/20 px-4.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-indigo-300 neon-glow-blue mb-8">
+            <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
+            <span>AI-Powered Legal Intelligence</span>
+          </div>
 
-        {/* H2/Subtitle */}
-        <p className="max-w-3xl text-center text-slate-400 text-base md:text-lg font-light leading-relaxed mb-10">
-          AI-powered contract simplification and risk detection for ordinary people. Don't
-          let legalese hide the risks you can't afford.
-        </p>
+          {/* H1 Main Title */}
+          <h1 className="max-w-5xl text-center text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1] md:leading-[1.08] mb-6">
+            Understand Any Contract <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#dcdfff] to-indigo-300">
+              Before You Sign
+            </span>
+          </h1>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4.5 mb-16">
-          <Link href="/analyze" className="w-full sm:w-auto">
-            <button className="w-full sm:w-auto rounded-lg bg-[#c7d2fe] hover:bg-[#b0c0f8] text-[#0f1123] font-semibold text-sm px-8 py-4 shadow-xl shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all">
-              Analyze Contract
+          {/* H2/Subtitle */}
+          <p className="max-w-3xl text-center text-slate-400 text-base md:text-lg font-light leading-relaxed mb-10">
+            AI-powered contract simplification and risk detection for ordinary people. Don't
+            let legalese hide the risks you can't afford.
+          </p>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4.5 mb-16">
+            <Link href="/analyze" className="w-full sm:w-auto">
+              <button className="w-full sm:w-auto rounded-lg bg-[#c7d2fe] hover:bg-[#b0c0f8] text-[#0f1123] font-semibold text-sm px-8 py-4 shadow-xl shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all">
+                Analyze Contract
+              </button>
+            </Link>
+            <button className="w-full sm:w-auto rounded-lg border border-slate-800 bg-[#070814]/40 hover:bg-slate-900/50 hover:border-slate-700 text-white font-medium text-sm px-8 py-4 hover:scale-[1.01] transition-all">
+              Watch Demo
             </button>
-          </Link>
-          <button className="w-full sm:w-auto rounded-lg border border-slate-800 bg-[#070814]/40 hover:bg-slate-900/50 hover:border-slate-700 text-white font-medium text-sm px-8 py-4 hover:scale-[1.01] transition-all">
-            Watch Demo
-          </button>
-        </div>
-
-        {/* 3D Visual Asset & Floating Overlap Cards */}
-        <div className="relative w-full max-w-4xl rounded-2xl border border-white/5 bg-[#0a0b18]/40 p-4 md:p-8 backdrop-blur-sm neon-glow-purple">
-          {/* Main Hero Illustration */}
-          <div className="relative w-full aspect-[16/9] overflow-hidden rounded-xl border border-white/5">
-            <Image
-              src="/contract_hero.png"
-              alt="Lexis AI Contract Visualizer"
-              fill
-              className="object-cover"
-              priority
-            />
-            {/* Visual shade overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#070814] via-transparent to-transparent opacity-80" />
           </div>
 
-          {/* Floating Card 1: High Risk Detected */}
-          <div className="absolute top-[20%] left-[-4%] md:left-[-6%] max-w-[280px] md:max-w-[320px] rounded-xl glass-panel p-5.5 text-xs border border-rose-500/25 shadow-xl hover:scale-[1.02] transition-all">
-            <div className="flex items-center space-x-2 text-rose-500 font-bold uppercase tracking-wider mb-2">
-              <WarningIcon />
-              <span>High Risk Detected</span>
+          {/* 3D Visual Asset & Floating Overlap Cards */}
+          <div className="relative w-full max-w-4xl rounded-2xl border border-white/5 bg-[#0a0b18]/40 p-4 md:p-8 backdrop-blur-sm neon-glow-purple">
+            {/* Main Hero Illustration */}
+            <div className="relative w-full aspect-[16/9] overflow-hidden rounded-xl border border-white/5">
+              <Image
+                src="/contract_hero.png"
+                alt="Lexis AI Contract Visualizer"
+                fill
+                className="object-cover"
+                priority
+              />
+              {/* Visual shade overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#070814] via-transparent to-transparent opacity-80" />
             </div>
-            <p className="text-slate-300 leading-relaxed font-light">
-              Section 4.2 contains a non-compete clause that lasts 5 years. This is 3
-              years longer than industry standard.
-            </p>
-          </div>
 
-          {/* Floating Card 2: Simple Explanation */}
-          <div className="absolute bottom-[15%] right-[-4%] md:right-[-6%] max-w-[280px] md:max-w-[340px] rounded-xl glass-panel p-5.5 text-xs border border-indigo-500/20 shadow-xl hover:scale-[1.02] transition-all">
-            <div className="flex items-center space-x-2 text-indigo-400 font-bold uppercase tracking-wider mb-2">
-              <SparklesIcon />
-              <span>Simple Explanation</span>
+            {/* Floating Card 1: High Risk Detected */}
+            <div className="absolute top-[20%] left-[-4%] md:left-[-6%] max-w-[280px] md:max-w-[320px] rounded-xl glass-panel p-5.5 text-xs border border-rose-500/25 shadow-xl hover:scale-[1.02] transition-all">
+              <div className="flex items-center space-x-2 text-rose-500 font-bold uppercase tracking-wider mb-2">
+                <WarningIcon />
+                <span>High Risk Detected</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed font-light">
+                Section 4.2 contains a non-compete clause that lasts 5 years. This is 3
+                years longer than industry standard.
+              </p>
             </div>
-            <p className="text-indigo-100 italic leading-relaxed font-light">
-              "In layman's terms: You are giving the company permission to use your
-              personal data for advertising without further notice."
-            </p>
+
+            {/* Floating Card 2: Simple Explanation */}
+            <div className="absolute bottom-[15%] right-[-4%] md:right-[-6%] max-w-[280px] md:max-w-[340px] rounded-xl glass-panel p-5.5 text-xs border border-indigo-500/20 shadow-xl hover:scale-[1.02] transition-all">
+              <div className="flex items-center space-x-2 text-indigo-400 font-bold uppercase tracking-wider mb-2">
+                <SparklesIcon />
+                <span>Simple Explanation</span>
+              </div>
+              <p className="text-indigo-100 italic leading-relaxed font-light">
+                "In layman's terms: You are giving the company permission to use your
+                personal data for advertising without further notice."
+              </p>
+            </div>
           </div>
         </div>
       </section>

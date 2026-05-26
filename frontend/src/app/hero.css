@@ -1,0 +1,12 @@
+.hero-bg {
+  background-image: url('/contract_hero.png');
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px);
+  animation: heroZoom 30s ease-in-out infinite alternate;
+}
+
+@keyframes heroZoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.07); }
+}

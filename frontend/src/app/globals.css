@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-poppins), sans-serif;
-  --color-dark-bg: #070814;
-  --color-dark-surface: #0f1123;
-  --color-brand-blue: #a3b8ff;
-  --color-brand-purple: #a78bfa;
-  --color-brand-lavender: #c7d2fe;
-  --color-brand-danger: #f43f5e;
-  --color-brand-success: #10b981;
+  --font-sans: var(--font-sora), sans-serif;
+  --color-bg-1: #0B1120; /* deep outer */
+  --color-bg-2: #111827; /* mid */
+  --color-bg-3: #0F172A; /* panel */
+  --accent-primary: #6366F1; /* purple */
+  --accent-azure: #3B82F6; /* blue */
+  --muted-steel: #4B6477;
+  --status-safe: #10b981; /* green-500 */
+  --status-warn: #f59e0b; /* yellow-500 */
+  --status-danger: #ef4444; /* red-500 */
 }
 
 :root {
-  --background: #070814;
-  --foreground: #f8fafc;
+  --background: var(--color-bg-1);
+  --foreground: #e6eef8;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-poppins), sans-serif;
+  font-family: var(--font-sora), sans-serif;
   overflow-x: hidden;
 }
 
@@ -71,6 +73,24 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* Global interactive element cursor */
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+/* Button hover baseline */
+button {
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+button:hover {
+  opacity: 0.92;
+}
+button:active {
+  transform: scale(0.98);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -79,5 +99,36 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Global interactive affordances: ensure clickable elements show pointer and subtle hover lift */
+a,
+button {
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.2,0,0.2,1), box-shadow 160ms ease, color 160ms ease;
+}
+
+a:hover,
+button:hover {
+  transform: translateY(-3px);
+}
+
+/* Improve focus outlines for accessibility */
+a:focus,
+button:focus {
+  outline: 2px solid rgba(99,102,241,0.18);
+  outline-offset: 3px;
+}
+.hero-zoom-animation {
+  animation: heroZoomPan 40s ease-in-out infinite alternate;
+}
+
+@keyframes heroZoomPan {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.08) translate(1%, -1%);
   }
 }
