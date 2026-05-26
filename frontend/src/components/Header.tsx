@@ -1,0 +1,64 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export default function Header() {
+  const pathname = usePathname();
+
+  return (
+    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 bg-[#070814]/70 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-6 md:px-8 h-20 flex items-center justify-between">
+        <Link href="/" className="flex items-center group">
+          {/* Double angled logo shape */}
+          <div className="flex items-center space-x-0.5">
+            <span className="h-5 w-1 bg-indigo-500 rounded-sm transform -rotate-12 group-hover:bg-indigo-400 transition-colors"></span>
+            <span className="h-6 w-1.5 bg-indigo-400 rounded-sm transform -rotate-12 group-hover:bg-indigo-300 transition-colors"></span>
+          </div>
+          <span className="ml-2.5 text-xl font-bold tracking-wider text-white">
+            LEXIS<span className="text-indigo-400">.AI</span>
+          </span>
+        </Link>
+
+        {/* Navigation Links */}
+        <nav className="hidden md:flex items-center space-x-8">
+          {[
+            { name: "Home", href: "/" },
+            { name: "Analyze", href: "/analyze" },
+            { name: "History", href: "/history" },
+            { name: "Vault", href: "#" },
+          ].map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.name === "Analyze" && pathname === "/analyze") ||
+              (item.name === "History" && pathname === "/history");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`relative py-1 text-sm font-medium tracking-wide transition-colors ${
+                  isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {item.name}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-400 rounded-full" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Analyze Button */}
+        <div>
+          <Link href="/analyze">
+            <button className="rounded-full bg-[#cbd5e1] hover:bg-white text-[#0a0f29] font-semibold text-sm px-6 py-2.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
+              Analyze
+            </button>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
