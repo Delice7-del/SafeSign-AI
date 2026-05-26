@@ -4,7 +4,19 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function Header() {
+interface HeaderProps {
+  ctaLabel?: string;
+  ctaIcon?: React.ReactNode;
+  onCtaClick?: () => void;
+  showAvatar?: boolean;
+}
+
+export default function Header({
+  ctaLabel,
+  ctaIcon,
+  onCtaClick,
+  showAvatar = false,
+}: HeaderProps = {}) {
   const pathname = usePathname();
 
   return (
@@ -50,13 +62,33 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Analyze Button */}
-        <div>
-          <Link href="/analyze">
-            <button className="rounded-full bg-[#cbd5e1] hover:bg-white text-[#0a0f29] font-semibold text-sm px-6 py-2.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
-              Analyze
+        {/* CTA + optional profile avatar */}
+        <div className="flex items-center gap-3">
+          {ctaLabel && onCtaClick ? (
+            <button
+              onClick={onCtaClick}
+              className="inline-flex items-center gap-2 rounded-full bg-brand-lavender hover:bg-white text-[#0a0f29] font-semibold text-sm px-5 py-2.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transform hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+            >
+              {ctaIcon}
+              {ctaLabel}
             </button>
-          </Link>
+          ) : (
+            <Link href="/analyze">
+              <button className="rounded-full bg-[#cbd5e1] hover:bg-white text-[#0a0f29] font-semibold text-sm px-6 py-2.5 shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transform hover:scale-[1.02] active:scale-[0.98] transition-all">
+                Analyze
+              </button>
+            </Link>
+          )}
+          {showAvatar && (
+            <div
+              className="h-9 w-9 rounded-full shrink-0 overflow-hidden border border-white/10"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(99,102,241,0.5) 0%, rgba(167,139,250,0.4) 100%)",
+              }}
+              aria-hidden
+            />
+          )}
         </div>
       </div>
     </header>
