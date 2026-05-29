@@ -51,9 +51,9 @@ export default function Header({
             { name: "Vault", href: "/vault" },
           ].map((item) => {
             const isActive =
-              pathname === item.href ||
-              (item.name === "Analyze" && pathname === "/analyze") ||
-              (item.name === "History" && pathname === "/history");
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.name}

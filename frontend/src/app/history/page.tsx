@@ -5,21 +5,29 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
 import { FiHome, FiBriefcase, FiUser, FiFileText, FiAward } from "react-icons/fi";
+import {
+  deleteAnalysis,
+  fetchHistory,
+  normalizeRiskBand,
+  type RiskBand,
+} from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface AnalysisRecord {
   id: number;
   contractTitle: string;
   role: string;
-  riskLevel: string; // "LOW" | "MEDIUM" | "HIGH"
+  riskLevel: string;
   riskScore: number;
   summary: string;
   analyzedAt: string;
   flaggedClauses: number;
+  pinned?: boolean;
+  riskBand: RiskBand;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const MOCK_RECORDS: AnalysisRecord[] = [
+// ─── Mock Data (offline fallback) ─────────────────────────────────────────────
+const MOCK_RECORDS: Omit<AnalysisRecord, "riskBand">[] = [
   {
     id: 1,
     contractTitle: "Residential Lease Agreement",
@@ -302,21 +310,31 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [apiError, setApiError] = useState(false);
 
-  // ── Fetch from backend (with mock fallback) ──
+  // ── Fetch from backend ──
   useEffect(() => {
     async function loadHistory() {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:8080/api/history", {
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!res.ok) throw new Error("Non-2xx");
-        const data: AnalysisRecord[] = await res.json();
-        setRecords(data.length > 0 ? data : MOCK_RECORDS);
+        const data = await fetchHistory();
+        setRecords(
+          data.map((r) => ({
+            ...r,
+            analyzedAt:
+              typeof r.analyzedAt === "string"
+                ? r.analyzedAt
+                : String(r.analyzedAt),
+            riskBand: normalizeRiskBand(r.riskLevel, r.riskScore),
+          }))
+        );
+        setApiError(false);
       } catch {
-        // Backend not available → use rich mock data
         setApiError(true);
-        setRecords(MOCK_RECORDS);
+        setRecords(
+          MOCK_RECORDS.map((r) => ({
+            ...r,
+            riskBand: normalizeRiskBand(r.riskLevel, r.riskScore),
+          }))
+        );
       } finally {
         setLoading(false);
       }
@@ -326,14 +344,21 @@ export default function HistoryPage() {
 
   // ── Filter ──
   const filtered = records.filter((r) => {
-    if (activeTab === "flagged") return r.riskLevel === "HIGH";
-    if (activeTab === "secure") return r.riskLevel === "LOW";
+    if (activeTab === "flagged") return r.riskBand === "HIGH";
+    if (activeTab === "secure") return r.riskBand === "LOW";
     return true;
   });
 
   // ── Delete handler ──
   function handleDelete(id: number) {
     setRecords((prev) => prev.filter((r) => r.id !== id));
+    (async () => {
+      try {
+        await deleteAnalysis(id);
+      } catch {
+        /* already removed locally */
+      }
+    })();
   }
 
   // ── Reopen handler ──
@@ -347,12 +372,12 @@ export default function HistoryPage() {
     {
       id: "flagged",
       label: "Flagged",
-      count: records.filter((r) => r.riskLevel === "HIGH").length,
+      count: records.filter((r) => r.riskBand === "HIGH").length,
     },
     {
       id: "secure",
       label: "Secure",
-      count: records.filter((r) => r.riskLevel === "LOW").length,
+      count: records.filter((r) => r.riskBand === "LOW").length,
     },
   ];
 

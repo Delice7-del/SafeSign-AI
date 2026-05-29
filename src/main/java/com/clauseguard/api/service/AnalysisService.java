@@ -33,9 +33,32 @@ public class AnalysisService {
         record.setRiskScore(response.getRiskScore());
         record.setRiskLevel(response.getRiskLevel());
 
-        repository.save(record);
+        AnalysisRecord saved = repository.save(record);
+        response.setId(saved.getId());
 
         return response;
+    }
+
+    @Transactional
+    public AnalysisRecord updatePinned(Long id, boolean pinned) {
+        AnalysisRecord record = getRecord(id);
+        if (record == null) {
+            return null;
+        }
+        record.setPinned(pinned);
+        return repository.save(record);
+    }
+
+    public AnalysisRecord saveRecord(AnalysisRecord record) {
+        return repository.save(record);
+    }
+
+    public void deleteRecord(Long id) {
+        repository.deleteById(id);
+    }
+
+    public AnalysisRecord getRecord(Long id) {
+        return repository.findById(id).orElse(null);
     }
 
     public List<AnalysisRecord> getHistory() {

@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import {
+  analyzeContract,
+  fetchAnalysisDetail,
+  saveAnalysis,
+  downloadAnalysisReport,
+} from "@/lib/api";
 
 // SVG Icons as highly optimized local components
 const WarningIcon = ({ className = "h-5 w-5 text-rose-500" }) => (
@@ -333,6 +340,10 @@ interface ScoreResultsViewProps {
   result: AnalysisResult;
   contractText: string;
   fileName: string | null;
+  savedId: number | null;
+  saveLabel: string;
+  onSaveAnalysis: () => void;
+  onDownloadReport: () => void;
 }
 
 const SCORE_CARD = "rounded-xl glass-panel";
@@ -342,6 +353,10 @@ const ScoreResultsView = ({
   result,
   contractText,
   fileName,
+  savedId,
+  saveLabel,
+  onSaveAnalysis,
+  onDownloadReport,
 }: ScoreResultsViewProps) => {
   const score = result.riskScore;
   const isHighRisk = score > 70;
@@ -544,21 +559,24 @@ const ScoreResultsView = ({
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
+                onClick={onDownloadReport}
                 className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 bg-[#0d0f2b] hover:bg-[#161b35] border border-white/10 rounded-lg px-3.5 py-2 transition-colors cursor-pointer"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                PDF Report
+                Download Report
               </button>
               <button
                 type="button"
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 bg-[#0d0f2b] hover:bg-[#161b35] border border-white/10 rounded-lg px-3.5 py-2 transition-colors cursor-pointer"
+                onClick={onSaveAnalysis}
+                disabled={!!savedId && saveLabel === "Saved to Vault"}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300 bg-[#0d0f2b] hover:bg-[#161b35] border border-white/10 rounded-lg px-3.5 py-2 transition-colors cursor-pointer disabled:opacity-60"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
                 </svg>
-                Save Analysis
+                {saveLabel}
               </button>
             </div>
           </div>
@@ -869,6 +887,7 @@ const MOCK_TEMPLATES: Record<string, string> = {
 };
 
 interface AnalysisResult {
+  id?: number;
   summary: string;
   goodParts: string[];
   dangerousClauses: string[];
@@ -877,7 +896,8 @@ interface AnalysisResult {
   riskLevel: string;
 }
 
-export default function ContractAnalysisPage() {
+function ContractAnalysisPageInner() {
+  const searchParams = useSearchParams();
   const [perspective, setPerspective] = useState<"Tenant" | "Freelancer" | "Employee">("Freelancer");
   const [isDragActive, setIsDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -885,9 +905,59 @@ export default function ContractAnalysisPage() {
   const [customTextLoaded, setCustomTextLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [savedId, setSavedId] = useState<number | null>(null);
+  const [saveLabel, setSaveLabel] = useState("Save to Vault");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loadingRecord, setLoadingRecord] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reopen saved analysis from History (/analyze?recordId=123)
+  useEffect(() => {
+    const recordId = searchParams.get("recordId");
+    if (!recordId) return;
+
+    const id = Number(recordId);
+    if (Number.isNaN(id)) return;
+
+    let cancelled = false;
+    (async () => {
+      setLoadingRecord(true);
+      setErrorMsg(null);
+      try {
+        const detail = await fetchAnalysisDetail(id);
+        if (cancelled) return;
+        setSavedId(detail.id);
+        setSaveLabel("Saved to Vault");
+        setResult({
+          id: detail.id,
+          summary: detail.summary,
+          goodParts: detail.goodParts ?? [],
+          dangerousClauses: detail.dangerousClauses ?? [],
+          roleBasedRisks: detail.roleBasedRisks ?? [],
+          riskScore: detail.riskScore,
+          riskLevel: detail.riskLevel,
+        });
+        setContractText(detail.contractText ?? "");
+        setCustomTextLoaded(true);
+        const role = detail.role?.toLowerCase();
+        if (role === "tenant" || role === "freelancer" || role === "employee") {
+          setPerspective(role.charAt(0).toUpperCase() + role.slice(1) as "Tenant" | "Freelancer" | "Employee");
+        }
+        setFileName(`${detail.contractTitle}`);
+      } catch {
+        if (!cancelled) {
+          setErrorMsg("Could not load saved analysis. It may have been deleted.");
+        }
+      } finally {
+        if (!cancelled) setLoadingRecord(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   // Handle perspective change and populate respective template if custom text isn't loaded
   const handlePerspectiveChange = (role: "Tenant" | "Freelancer" | "Employee") => {
@@ -960,36 +1030,73 @@ export default function ContractAnalysisPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:8080/api/analyze-contract", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await analyzeContract(payload);
       setResult(data);
-    } catch (err: any) {
-      console.warn("Backend API is unavailable, running local AI simulation: ", err.message);
+      if (data.id) {
+        setSavedId(data.id);
+        setSaveLabel("Saved to Vault");
+      } else {
+        setSavedId(null);
+        setSaveLabel("Save to Vault");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.warn("Backend API is unavailable, running local AI simulation: ", message);
       
       // Artificial delay for loading experience
       await new Promise((resolve) => setTimeout(resolve, 2000));
       
       // Set high-fidelity mock fallback
       setResult(getMockFallback(perspective));
+      setSavedId(null);
+      setSaveLabel("Save to Vault");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveAnalysis = async () => {
+    if (!result) return;
+    if (savedId) {
+      setSaveLabel("Saved to Vault");
+      return;
+    }
+    try {
+      const saved = await saveAnalysis({
+        contractText,
+        userRole: perspective.toLowerCase(),
+        summary: result.summary,
+        goodParts: result.goodParts,
+        dangerousClauses: result.dangerousClauses,
+        roleBasedRisks: result.roleBasedRisks,
+        riskScore: result.riskScore,
+        riskLevel: result.riskLevel,
+      });
+      setSavedId(saved.id);
+      setSaveLabel("Saved to Vault");
+    } catch {
+      setErrorMsg("Could not save to Vault. Is the backend running?");
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!result) return;
+    downloadAnalysisReport(fileName || "Contract_Analysis", {
+      summary: result.summary,
+      riskScore: result.riskScore,
+      riskLevel: result.riskLevel,
+      dangerousClauses: result.dangerousClauses,
+      goodParts: result.goodParts,
+      roleBasedRisks: result.roleBasedRisks,
+      role: perspective,
+    });
+  };
+
   // Reset page state to analyze another contract
   const handleReset = () => {
     setResult(null);
+    setSavedId(null);
+    setSaveLabel("Save to Vault");
     setFileName(null);
     setCustomTextLoaded(false);
     setContractText(MOCK_TEMPLATES[perspective]);
@@ -1259,23 +1366,45 @@ export default function ContractAnalysisPage() {
         )}
 
         {/* --- LOADING VIEW (Analysis Complete Screen) --- */}
-        {loading && (
+        {(loading || loadingRecord) && (
           <div className="w-full max-w-2xl mt-6">
             <AnalysisCompleteView />
           </div>
         )}
 
+        {errorMsg && (
+          <p className="text-sm text-rose-400 text-center mb-4">{errorMsg}</p>
+        )}
+
         {/* --- SCORE / RESULTS DASHBOARD --- */}
-        {result && !loading && (
+        {result && !loading && !loadingRecord && (
           <ScoreResultsView
             result={result}
             contractText={contractText}
             fileName={fileName}
+            savedId={savedId}
+            saveLabel={saveLabel}
+            onSaveAnalysis={handleSaveAnalysis}
+            onDownloadReport={handleDownloadReport}
           />
         )}
       </main>
 
       <Footer />
     </div>
+  );
+}
+
+export default function ContractAnalysisPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070814] flex items-center justify-center text-slate-400 text-sm">
+          Loading analysis…
+        </div>
+      }
+    >
+      <ContractAnalysisPageInner />
+    </Suspense>
   );
 }

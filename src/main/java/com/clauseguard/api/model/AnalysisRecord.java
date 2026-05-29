@@ -42,6 +42,9 @@ public class AnalysisRecord {
 
     private LocalDateTime createdAt;
 
+    // Vault state: pinned by user
+    private boolean pinned = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

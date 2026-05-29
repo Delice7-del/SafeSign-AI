@@ -7,10 +7,16 @@ import { FiX, FiAlertTriangle, FiCheckCircle, FiInfo, FiLock } from "react-icons
 interface ReportModalProps {
   open: boolean;
   contract?: Contract | null;
+  loading?: boolean;
   onClose: () => void;
 }
 
-export default function ReportModal({ open, contract, onClose }: ReportModalProps) {
+export default function ReportModal({
+  open,
+  contract,
+  loading = false,
+  onClose,
+}: ReportModalProps) {
   if (!contract) return null;
 
   const score = contract.riskScore;
@@ -38,8 +44,11 @@ export default function ReportModal({ open, contract, onClose }: ReportModalProp
     "Standard data security and GDPR compliance."
   ];
 
-  const mockRoleRisks = contract.roleBasedRisks || 
-    `As a ${contract.role}, your rights are governed by local statutes. Carefully review the liability and IP transfer schedules.`;
+  const mockRoleRisks = contract.roleBasedRisks
+    ? Array.isArray(contract.roleBasedRisks)
+      ? contract.roleBasedRisks.join(" ")
+      : contract.roleBasedRisks
+    : `As a ${contract.role}, your rights are governed by local statutes. Carefully review the liability and IP transfer schedules.`;
 
   return (
     <AnimatePresence>
@@ -90,8 +99,14 @@ export default function ReportModal({ open, contract, onClose }: ReportModalProp
               </button>
             </header>
 
+            {loading && (
+              <p className="mt-6 text-center text-sm text-slate-400 animate-pulse">
+                Loading full analysis from server…
+              </p>
+            )}
+
             {/* Modal Body */}
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className={`mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 ${loading ? "opacity-40 pointer-events-none" : ""}`}>
               {/* Left Column: Gauge, Summary, and Role Risks */}
               <div className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left gap-6 border-b lg:border-b-0 lg:border-r border-white/5 pb-6 lg:pb-0 lg:pr-8">
                 

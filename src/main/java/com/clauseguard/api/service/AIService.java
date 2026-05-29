@@ -1,12 +1,16 @@
 package com.clauseguard.api.service;
 
 import com.clauseguard.api.dto.AnalysisResponse;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import java.io.*;
-import java.net.URISyntaxException;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -24,18 +28,23 @@ public class AIService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AnalysisResponse analyzeContract(String text, String role) {
-        try {
-            // Resolve the script path relative to the JAR/project root robustly
-            String scriptPath = resolveScriptPath("ai_analysis.py");
+        Path scriptPath = resolveScriptPath("ai_analysis.py");
+        if (!Files.exists(scriptPath)) {
+            System.err.println("AI script not found at: " + scriptPath.toAbsolutePath());
+            return getMockAnalysis(role, "ai_analysis.py not found in project root.");
+        }
 
-            // Pass contract text and role via stdin as JSON to avoid CLI arg issues
-            ProcessBuilder pb = new ProcessBuilder(pythonExecutable, scriptPath);
-            pb.environment().put("GROQ_API_KEY", apiKey);
-            pb.redirectErrorStream(false); // keep stdout and stderr separate
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    pythonExecutable,
+                    scriptPath.toAbsolutePath().toString()
+            );
+            pb.directory(scriptPath.getParent().toFile());
+            pb.environment().put("GROQ_API_KEY", apiKey != null ? apiKey : "");
+            pb.redirectErrorStream(false);
 
             Process process = pb.start();
 
-            // Write input as JSON to stdin
             String inputJson = objectMapper.writeValueAsString(
                     java.util.Map.of("contractText", text, "userRole", role)
             );
@@ -44,7 +53,6 @@ public class AIService {
                 writer.write(inputJson);
             }
 
-            // Read stdout (JSON result)
             StringBuilder output = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
@@ -54,7 +62,6 @@ public class AIService {
                 }
             }
 
-            // Read stderr for proper error visibility
             StringBuilder errorOutput = new StringBuilder();
             try (BufferedReader errReader = new BufferedReader(
                     new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
@@ -64,65 +71,81 @@ public class AIService {
                 }
             }
 
-            // Wait with a 60-second timeout to prevent hanging threads
-            boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(90, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                System.err.println("Python script timed out after 60 seconds.");
-                return getMockAnalysis(role);
+                return getMockAnalysis(role, "Python AI script timed out after 90 seconds.");
             }
 
-            int exitCode = process.exitValue();
-            if (exitCode == 0 && output.length() > 0) {
-                return objectMapper.readValue(output.toString(), AnalysisResponse.class);
-            } else {
-                System.err.println("Python script exited with code: " + exitCode);
-                if (errorOutput.length() > 0) {
-                    System.err.println("Python stderr:\n" + errorOutput);
+            if (output.length() > 0) {
+                AnalysisResponse parsed = parsePythonOutput(output.toString(), role);
+                if (parsed != null) {
+                    return parsed;
                 }
+            }
+
+            System.err.println("Python exit code: " + process.exitValue());
+            if (errorOutput.length() > 0) {
+                System.err.println("Python stderr:\n" + errorOutput);
             }
         } catch (Exception e) {
             System.err.println("Error calling Python AI script: " + e.getMessage());
             e.printStackTrace();
         }
 
-        return getMockAnalysis(role);
+        return getMockAnalysis(role, "AI bridge unavailable. Install Python deps: pip install -r requirements.txt");
     }
 
-    /**
-     * Resolves the Python script path relative to the running JAR or project root.
-     * Falls back to the current working directory if resolution fails.
-     */
-    private String resolveScriptPath(String scriptName) {
+    private AnalysisResponse parsePythonOutput(String json, String role) {
         try {
-            // Get the location of the running JAR/class
-            Path jarPath = Paths.get(
+            JsonNode root = objectMapper.readTree(json);
+            if (root.hasNonNull("error")) {
+                System.err.println("Python AI error: " + root.get("error").asText());
+                return getMockAnalysis(role, root.get("error").asText());
+            }
+            return objectMapper.treeToValue(root, AnalysisResponse.class);
+        } catch (Exception e) {
+            System.err.println("Failed to parse Python JSON: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private Path resolveScriptPath(String scriptName) {
+        Path cwd = Paths.get(System.getProperty("user.dir"));
+        Path inCwd = cwd.resolve(scriptName);
+        if (Files.exists(inCwd)) {
+            return inCwd;
+        }
+
+        try {
+            Path codeLocation = Paths.get(
                     AIService.class.getProtectionDomain().getCodeSource().getLocation().toURI()
             );
-            // Go up from target/classes or the JAR to the project root
-            Path projectRoot = jarPath.getParent();
-            if (projectRoot.endsWith("classes")) {
-                projectRoot = projectRoot.getParent().getParent(); // target/classes -> project root
-            } else if (projectRoot.toString().contains("target")) {
-                projectRoot = projectRoot.getParent(); // target -> project root
+            Path projectRoot = codeLocation.getParent();
+            if (projectRoot != null && projectRoot.endsWith("classes")) {
+                projectRoot = projectRoot.getParent().getParent();
+            } else if (projectRoot != null && projectRoot.toString().contains("target")) {
+                projectRoot = projectRoot.getParent();
             }
-            Path scriptPath = projectRoot.resolve(scriptName);
-            if (scriptPath.toFile().exists()) {
-                return scriptPath.toAbsolutePath().toString();
+            if (projectRoot != null) {
+                Path candidate = projectRoot.resolve(scriptName);
+                if (Files.exists(candidate)) {
+                    return candidate;
+                }
             }
-        } catch (URISyntaxException e) {
-            System.err.println("Could not resolve script path via JAR location: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Could not resolve script via classpath: " + e.getMessage());
         }
-        // Fallback: use current working directory
-        return Paths.get(System.getProperty("user.dir"), scriptName).toAbsolutePath().toString();
+
+        return inCwd;
     }
 
-    private AnalysisResponse getMockAnalysis(String role) {
+    private AnalysisResponse getMockAnalysis(String role, String reason) {
         return AnalysisResponse.builder()
-                .summary("Mock analysis: AI service is unavailable. Please check your Gemini API key and Python setup.")
+                .summary("Fallback analysis (" + reason + "). Configure GROQ_API_KEY and Python (pip install -r requirements.txt) for live AI.")
                 .goodParts(List.of("The contract is structured clearly.", "Basic terms are defined."))
                 .dangerousClauses(List.of("Potential liability risks found in sections 4 and 5."))
-                .roleBasedRisks(List.of("As a " + role + ", you should verify the termination notice period."))
+                .roleBasedRisks(List.of("As a " + role + ", verify termination notice and payment terms."))
                 .riskScore(40)
                 .riskLevel("Medium Risk")
                 .build();

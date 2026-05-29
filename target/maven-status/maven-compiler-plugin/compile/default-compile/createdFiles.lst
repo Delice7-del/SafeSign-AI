@@ -1,0 +1,6 @@
+com\clauseguard\api\dto\AnalysisSaveRequest.class
+com\clauseguard\api\controller\HealthController.class
+com\clauseguard\api\mapper\AnalysisMapper.class
+com\clauseguard\api\dto\AnalysisDetailDto.class
+com\clauseguard\api\dto\AnalysisHistoryDto.class
+com\clauseguard\api\dto\PinUpdateRequest.class

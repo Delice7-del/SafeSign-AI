@@ -1,0 +1,25 @@
+# Build
+target/
+*.class
+*.jar
+
+# Local secrets (never commit)
+application-local.properties
+src/main/resources/application-local.properties
+.env
+.env.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -9,7 +9,8 @@ export interface Contract {
   riskScore: number; // 0-100
   summary: string;
   pinned?: boolean;
+  flaggedClauses?: number;
   dangerousClauses?: string[];
   goodParts?: string[];
-  roleBasedRisks?: string;
+  roleBasedRisks?: string | string[];
 }

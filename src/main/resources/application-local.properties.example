@@ -1,0 +1,9 @@
+# Copy to application-local.properties (same folder or project root)
+# This file is gitignored when named application-local.properties
+
+# Get a free key: https://console.groq.com/keys
+groq.api.key=gsk_your_groq_api_key_here
+
+# Optional: use PostgreSQL instead of default H2 dev profile
+# spring.profiles.active=prod
+# spring.datasource.password=your_postgres_password

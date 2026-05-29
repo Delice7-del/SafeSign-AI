@@ -1,18 +1,12 @@
 package com.clauseguard.api.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class AnalysisResponse {
-    /** Database id when the analysis was persisted */
-    private Long id;
+public class AnalysisSaveRequest {
+    private String contractText;
+    private String userRole;
     private String summary;
     private List<String> goodParts;
     private List<String> dangerousClauses;

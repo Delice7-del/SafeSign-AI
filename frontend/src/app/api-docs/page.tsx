@@ -4,56 +4,100 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { FiCode, FiZap, FiKey, FiTerminal, FiCopy, FiCheck } from "react-icons/fi";
+import { FiCode, FiZap, FiTerminal, FiCopy, FiCheck } from "react-icons/fi";
+import { API_BASE } from "@/lib/api";
 
 const endpoints = [
   {
     method: "POST",
-    path: "/v1/analyze",
-    description: "Submit a contract document for AI analysis.",
+    path: "/api/analyze-contract",
+    description:
+      "Run AI analysis on contract text. Persists the result and returns analysis fields plus database id.",
     color: "text-emerald-400",
     bg: "bg-emerald-950/30",
     border: "border-emerald-500/20",
     body: `{
-  "document": "base64_encoded_pdf_or_text",
-  "role": "freelancer" | "tenant" | "client",
-  "language": "en" // optional, default: "en"
+  "contractText": "Full contract text…",
+  "userRole": "tenant" | "freelancer" | "employee"
 }`,
     response: `{
-  "analysis_id": "anl_xK9mP2...",
-  "risk_level": "medium",
-  "risk_score": 42,
-  "summary": "This contract contains 3 flagged clauses...",
-  "clauses": [ ... ],
-  "created_at": "2026-05-26T14:00:00Z"
+  "id": 42,
+  "summary": "…",
+  "goodParts": ["…"],
+  "dangerousClauses": ["…"],
+  "roleBasedRisks": ["…"],
+  "riskScore": 72,
+  "riskLevel": "Medium Risk"
 }`,
   },
   {
     method: "GET",
-    path: "/v1/analysis/{id}",
-    description: "Retrieve a previously generated analysis by its ID.",
+    path: "/api/history",
+    description: "List all saved analyses (Vault / History).",
     color: "text-blue-400",
     bg: "bg-blue-950/30",
     border: "border-blue-500/20",
     body: null,
-    response: `{
-  "analysis_id": "anl_xK9mP2...",
-  "risk_level": "medium",
-  "clauses": [ ... ]
+    response: `[{
+  "id": 42,
+  "contractTitle": "SaaS_MSA_v4.2.pdf",
+  "role": "Freelancer",
+  "riskLevel": "Medium Risk",
+  "riskScore": 58,
+  "summary": "…",
+  "analyzedAt": "2026-05-26T14:02:00",
+  "flaggedClauses": 3,
+  "pinned": false
+}]`,
+  },
+  {
+    method: "GET",
+    path: "/api/analyses/{id}",
+    description: "Full analysis detail for Vault modal and reopening reports.",
+    color: "text-blue-400",
+    bg: "bg-blue-950/30",
+    border: "border-blue-500/20",
+    body: null,
+    response: `{ "id": 42, "contractText": "…", "goodParts": [], … }`,
+  },
+  {
+    method: "POST",
+    path: "/api/analyses",
+    description: "Manually save an analysis (used when analyze ran offline).",
+    color: "text-emerald-400",
+    bg: "bg-emerald-950/30",
+    border: "border-emerald-500/20",
+    body: `{
+  "contractText": "…",
+  "userRole": "freelancer",
+  "summary": "…",
+  "goodParts": [],
+  "dangerousClauses": [],
+  "roleBasedRisks": [],
+  "riskScore": 58,
+  "riskLevel": "Medium Risk"
 }`,
+    response: `AnalysisHistoryDto (same shape as history list item)`,
+  },
+  {
+    method: "PATCH",
+    path: "/api/analyses/{id}/pin",
+    description: "Pin or unpin a contract in the Vault.",
+    color: "text-amber-400",
+    bg: "bg-amber-950/30",
+    border: "border-amber-500/20",
+    body: `{ "pinned": true }`,
+    response: `Updated AnalysisHistoryDto`,
   },
   {
     method: "DELETE",
-    path: "/v1/vault/{doc_id}",
-    description: "Permanently delete a document from a user's Vault.",
+    path: "/api/analyses/{id}",
+    description: "Delete a saved analysis from Vault / History.",
     color: "text-rose-400",
     bg: "bg-rose-950/30",
     border: "border-rose-500/20",
     body: null,
-    response: `{
-  "success": true,
-  "deleted_id": "doc_3Rk9..."
-}`,
+    response: `204 No Content`,
   },
 ];
 
@@ -70,6 +114,7 @@ function CodeBlock({ code }: { code: string }) {
         {code}
       </pre>
       <button
+        type="button"
         onClick={handleCopy}
         className="absolute top-3 right-3 h-7 w-7 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer hover:bg-slate-700"
       >
@@ -91,7 +136,6 @@ export default function ApiPage() {
       <Header />
 
       <main className="flex-1 mx-auto w-full max-w-4xl px-6 md:px-8 py-16 md:py-24">
-        {/* Page header */}
         <div className="mb-14 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/15 bg-indigo-950/20 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-indigo-300 mb-6">
             <FiCode className="h-3.5 w-3.5" />
@@ -101,27 +145,12 @@ export default function ApiPage() {
             API Reference
           </h1>
           <p className="text-slate-400 font-light text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Integrate LEXIS.AI's contract intelligence directly into your product.
-            RESTful, secure, and built for scale.
+            REST API used by Analyze, History, and Vault. Set{" "}
+            <code className="text-indigo-300">NEXT_PUBLIC_API_BASE</code> in the frontend to
+            match your Spring Boot server.
           </p>
         </div>
 
-        {/* Auth section */}
-        <div className="glass-panel rounded-2xl p-7 md:p-8 mb-5">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-9 w-9 rounded-lg bg-indigo-950/50 border border-indigo-500/20 flex items-center justify-center shrink-0">
-              <FiKey className="h-5 w-5 text-indigo-400" />
-            </div>
-            <h2 className="text-lg font-bold text-white">Authentication</h2>
-          </div>
-          <p className="text-slate-400 text-sm font-light leading-relaxed mb-4">
-            All API requests require a Bearer token in the Authorization header. You can
-            generate an API key from your account dashboard.
-          </p>
-          <CodeBlock code={`Authorization: Bearer lexis_sk_live_xxxxxxxxxxxxxxxxxxxx`} />
-        </div>
-
-        {/* Base URL */}
         <div className="glass-panel rounded-2xl p-7 md:p-8 mb-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-9 w-9 rounded-lg bg-indigo-950/50 border border-indigo-500/20 flex items-center justify-center shrink-0">
@@ -129,38 +158,40 @@ export default function ApiPage() {
             </div>
             <h2 className="text-lg font-bold text-white">Base URL</h2>
           </div>
-          <CodeBlock code={`https://api.lexis.ai`} />
+          <CodeBlock code={API_BASE} />
         </div>
 
-        {/* Rate limits */}
         <div className="glass-panel rounded-2xl p-7 md:p-8 mb-8">
           <div className="flex items-center gap-3 mb-5">
             <div className="h-9 w-9 rounded-lg bg-indigo-950/50 border border-indigo-500/20 flex items-center justify-center shrink-0">
               <FiZap className="h-5 w-5 text-indigo-400" />
             </div>
-            <h2 className="text-lg font-bold text-white">Rate Limits</h2>
+            <h2 className="text-lg font-bold text-white">Frontend pages</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { tier: "Free", limit: "10 req / day", color: "border-slate-700" },
-              { tier: "Pro", limit: "500 req / day", color: "border-indigo-500/30" },
-              { tier: "Enterprise", limit: "Unlimited", color: "border-blue-500/30" },
-            ].map((t) => (
-              <div key={t.tier} className={`rounded-xl border ${t.color} bg-[#070814]/50 p-4 text-center`}>
-                <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">{t.tier}</p>
-                <p className="text-white font-bold text-sm">{t.limit}</p>
-              </div>
-            ))}
-          </div>
+          <ul className="text-sm text-slate-400 space-y-2 font-light">
+            <li>
+              <strong className="text-slate-200">/analyze</strong> → POST analyze-contract, GET
+              analyses/{"{id}"} (reopen), POST analyses (save)
+            </li>
+            <li>
+              <strong className="text-slate-200">/history</strong> → GET history, DELETE
+              analyses/{"{id}"}
+            </li>
+            <li>
+              <strong className="text-slate-200">/vault</strong> → GET history, GET analyses/
+              {"{id}"}, PATCH pin, DELETE
+            </li>
+          </ul>
         </div>
 
-        {/* Endpoints */}
         <h2 className="text-xl font-bold text-white mb-5">Endpoints</h2>
         <div className="space-y-5">
           {endpoints.map((ep, i) => (
             <div key={i} className="glass-panel glass-panel-hover rounded-2xl p-7 md:p-8">
               <div className="flex flex-wrap items-center gap-3 mb-4">
-                <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-md ${ep.bg} ${ep.border} border ${ep.color}`}>
+                <span
+                  className={`text-xs font-bold font-mono px-2.5 py-1 rounded-md ${ep.bg} ${ep.border} border ${ep.color}`}
+                >
                   {ep.method}
                 </span>
                 <code className="text-sm font-mono text-white">{ep.path}</code>
@@ -168,12 +199,16 @@ export default function ApiPage() {
               <p className="text-slate-400 text-sm font-light mb-5">{ep.description}</p>
               {ep.body && (
                 <div className="mb-4">
-                  <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Request Body</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">
+                    Request Body
+                  </p>
                   <CodeBlock code={ep.body} />
                 </div>
               )}
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Response</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">
+                  Response
+                </p>
                 <CodeBlock code={ep.response} />
               </div>
             </div>
